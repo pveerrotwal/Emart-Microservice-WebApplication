@@ -1,18 +1,14 @@
-FROM node:14 AS ui-build
-WORKDIR /usr/src/app
-COPY client/ ./client/
-RUN cd client && npm install && npm run build
-
-FROM node:14 AS server-build
-WORKDIR /usr/src/app
-COPY nodeapi/ ./nodeapi/
-RUN cd nodeapi && npm install
-
-FROM node:14
+FROM openjdk:8 AS BUILD_IMAGE
 WORKDIR /usr/src/app/
-COPY --from=server-build /usr/src/app/nodeapi/ ./
-COPY --from=ui-build /usr/src/app/client/dist ./client/dist
-RUN ls
-EXPOSE 4200
-EXPOSE 5000
-CMD ["/bin/sh", "-c", "cd /usr/src/app/ && npm start"]
+RUN apt update && apt install maven -y
+COPY ./ /usr/src/app/
+RUN mvn install -DskipTests
+
+FROM openjdk:8
+
+WORKDIR /usr/src/app/
+COPY --from=BUILD_IMAGE /usr/src/app/target/book-work-0.0.1-SNAPSHOT.jar ./book-work-0.0.1.jar
+
+EXPOSE 9000
+ENTRYPOINT ["java","-jar","book-work-0.0.1.jar"]
+# Test
